@@ -7,6 +7,11 @@ generator client {
     provider = "prisma-client-js"
 }
 
+enum Role {
+    USER
+    ADMIN
+}
+
 model users {
     id            Int      @id @unique @default(autoincrement())
     email         String   @unique @db.Char(100)
@@ -16,7 +21,48 @@ model users {
     last_name     String   @db.Char(30)
     password      String   @db.Char(255)
     blocked       Boolean  @default(false)
-    avatar        String   @default("http://127.0.0.1:4000/no_avatar.jpg")
+    avatar        String   @default("no_avatar.jpg")
+    role          Role     @default(USER)
     create_at     DateTime @default(now())
     update_at     DateTime @default(now())
+}
+
+model categories {
+    id       Int        @id @default(autoincrement())
+    title    String     @unique
+    status   Boolean    @default(false)
+    avatar   String     @default("category.jpg")
+    deleted  Boolean    @default(false)
+    products products[]
+}
+
+model products {
+    id              Int               @id @default(autoincrement())
+    name            String            @unique(map: "Products_name_key")
+    active          Boolean           @default(false)
+    des             String
+    price           Float
+    avatar          String
+    category        categories        @relation(fields: [category_id], references: [id])
+    category_id     Int
+    product_options product_options[]
+}
+
+model product_options {
+    id                      Int                       @id @default(autoincrement())
+    name                    String                    @unique()
+    price                   Float
+    stock                   Int
+    active                  Boolean                   @default(false)
+    product_option_pictures product_option_pictures[]
+    product_id              Int
+    product                 products                  @relation(fields: [product_id], references: [id])
+}
+
+model product_option_pictures {
+    id                Int             @id @default(autoincrement())
+    url               String
+    is_avatar         Boolean         @default(false)
+    product_option_id Int
+    product_option    product_options @relation(fields: [product_option_id], references: [id])
 }

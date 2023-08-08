@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import ipService from '../services/ip'
 
 async function sendMailLogin(user, ip) {
+
     let result = await ipService.deIp(ip); // 5.181.233.162
     /* Xử lý email */
     try {
@@ -15,18 +16,18 @@ async function sendMailLogin(user, ip) {
             subject: "Thông báo về tài khoản",
             html: `
                 <h1 style="color: red">
-                    ${
-                        result.status == "fail" 
-                        ?
-                            "Tài khoản đã login tại địa chỉ ip là: " + ip
-                        : "Tài khoản đã login tại: quốc gia: " + result.country  + " với ip là: " +result.query
-                    }
+                    ${result.status == "fail"
+                    ?
+                    "Tài khoản đã login tại địa chỉ ip là: " + ip
+                    : "Tài khoản đã login tại: quốc gia: " + result.country + " với ip là: " + result.query
+                }
 
                 </h1>
             `
         });
-    }catch(err) {
-        //console.log("err", err)
+        console.log("mailSent", mailSent)
+    } catch (err) {
+        console.log("err", err)
     }
 }
 
@@ -50,8 +51,8 @@ export default {
                         })
                     }
                     let template = await ejs.renderFile(
-                        path.join(__dirname, "../templates/email_confirm.ejs"), 
-                        {user: req.body, token}
+                        path.join(__dirname, "../templates/email_confirm.ejs"),
+                        { user: req.body, token }
                     )
 
                     if (modelRes.status) {
@@ -61,16 +62,17 @@ export default {
                             html: template
                         }
                         let mailSent = await mailService.sendMail(mailOptions);
-                        if(mailSent) {
+                        if (mailSent) {
                             modelRes.message += " Đã gửi email xác thực, vui lòng kiểm tra!"
                         }
                     }
                 }
-            }catch(err) {
+            } catch (err) {
+                console.log("err", err)
                 modelRes.message += " Lỗi trong quá trình gửi mail xác thực, bạn có thể gửi lại email trong phần profile"
             }
 
-            res.status(modelRes.status ? 200 : 413).json(modelRes)
+            res.status(modelRes.status ? 200 : 229).json(modelRes)
         } catch (err) {
             return res.status(500).json(
                 {
@@ -88,7 +90,7 @@ export default {
         try {
             let modelRes = await userModel.confirm(decode)
 
-            res.status(modelRes.status ? 200 : 413).json(modelRes)
+            res.status(modelRes.status ? 200 : 229).send("da xac nhanj thanh cong")
 
         } catch (err) {
             return res.status(500).json(
@@ -106,13 +108,13 @@ export default {
                 // xác thực passord
                 let checkPassword = await bcrypt.compare(req.body.password, modelRes.data.password)
                 if (!checkPassword) {
-                    modelRes.message = "Mật khẩu không chính xác!"
-                    return res.status(modelRes.status ? 200 : 413).json(modelRes)
+                    modelRes.message = "Incorrect Password!!"
+                    return res.status(modelRes.status ? 200 : 213).json(modelRes)
                 }
                 // xác thực trạng thái tài khoản
                 if (modelRes.data.blocked) {
                     modelRes.message = "Tài khoản đã bị khóa!"
-                    return res.status(modelRes.status ? 200 : 413).json(modelRes)
+                    return res.status(modelRes.status ? 200 : 213).json(modelRes)
                 }
                 // thành công xử lý token
                 let token = jwt.createToken(modelRes, "1d");
@@ -122,14 +124,14 @@ export default {
                 sendMailLogin(modelRes.data, ipAddress);
 
                 // trả về client
-                return res.status(token ? 200 : 314).json(
+                return res.status(token ? 200 : 213).json(
                     {
-                        message: token  ? "Login thành công!" : "Server bảo trì!",
+                        message: token ? "Login thành công!" : "Server bảo trì!",
                         token
                     }
                 )
             }
-            return res.status(modelRes.status ? 200 : 413).json(modelRes)
+            return res.status(modelRes.status ? 200 : 213).json(modelRes)
         } catch (err) {
             return res.status(500).json(
                 {
@@ -140,7 +142,7 @@ export default {
     },
     authenToken: async (req, res) => {
         let decode = jwt.verifyToken(req.body.token)
-        return res.status(200).json(decode) 
+        return res.status(200).json(decode)
     },
     changePassword: async (req, res) => {
         try {
@@ -148,15 +150,15 @@ export default {
 
             if (!checkPass) {
                 return res.status(200).json({
-                    message: "Mật khẩu không chính xác!"
+                    message: "Incorrect Password!"
                 })
             }
 
             let token = jwt.createToken(
                 {
                     new_pass: await bcrypt.hash(req.body.new_pass, 10),
-                    user_name:  req.body.data.user_name
-                },300000
+                    user_name: req.body.data.user_name
+                }, 300000
             )
 
             let mailOptions = {
@@ -174,7 +176,7 @@ export default {
                     message: mailSent ? "Đã gửi lại email xác nhận!" : "Lỗi hệ thống"
                 }
             )
-        }catch(err) {
+        } catch (err) {
             return res.status(200).json(
                 {
                     message: "Lỗi hệ thống"
@@ -188,19 +190,19 @@ export default {
             let decode = jwt.verifyToken(token);
             if (!decode) {
                 return res.status(200).send("Email hết hạn!")
-            }else {
+            } else {
                 console.log("decode", decode)
                 let result = await userModel.update({
                     user_name: decode.user_name,
                     password: decode.new_pass
                 })
-                if(result.status) {
+                if (result.status) {
                     return res.json({
-                        message: "Đổi pass thành công!"
+                        message: "Change password successfully!"
                     })
                 }
             }
-        }catch(err) {
+        } catch (err) {
 
         }
     },
@@ -213,8 +215,8 @@ export default {
             }, 300000)
 
             let template = await ejs.renderFile(
-                path.join(__dirname, "../templates/email_confirm.ejs"), 
-                {user: req.body, token}
+                path.join(__dirname, "../templates/email_confirm.ejs"),
+                { user: req.body, token }
             )
 
             let mailOptions = {
@@ -229,7 +231,7 @@ export default {
                     message: mailSent ? "Đã gửi lại email xác nhận!" : "Lỗi hệ thống"
                 }
             )
-        }catch(err) {
+        } catch (err) {
             return res.status(200).json(
                 {
                     message: "Lỗi hệ thống"
