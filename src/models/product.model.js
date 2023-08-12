@@ -20,6 +20,7 @@ export default {
             }
         }
     },
+    //search
     findMany: async function () {
         try {
             let products = await prisma.products.findMany();
@@ -39,18 +40,9 @@ export default {
         try {
             let products = await prisma.products.findMany({
                 where: {
-                    OR: [
-                        {
-                            name: {
-                                contains: searchString,
-                            }
-                        },
-                        {
-                            des: {
-                                contains: searchString,
-                            },
-                        }
-                    ]
+                    name: {
+                        contains: searchString,
+                    }
                 }
             });
             return {
@@ -59,7 +51,6 @@ export default {
                 data: products
             }
         } catch (err) {
-            console.log("err", err)
             return {
                 status: false,
                 message: "lỗi!"
@@ -78,7 +69,7 @@ export default {
                 data: product
             }
         } catch (err) {
-            console.log("err", err)
+            console.log("err", err);
             return {
                 status: false,
                 message: "Lỗi không xác định!"

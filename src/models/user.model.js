@@ -50,7 +50,6 @@ export default {
 
                         if (flag) {
                             try {
-                                console.log("create replace", this)
 
                                 await prisma.users.update({
                                     where: {
@@ -90,7 +89,8 @@ export default {
                     email: data.email
                 },
                 data: {
-                    email_confirm: true
+                    email_confirm: true,
+                    update_at: new Date(Date.now()) //admin
                 }
             })
 
@@ -137,7 +137,8 @@ export default {
                     user_name: data.user_name
                 },
                 data: {
-                    password: data.password
+                    password: data.password,
+                    update_at: new Date(Date.now()) //admin
                 }
             })
 
@@ -152,4 +153,28 @@ export default {
             }
         }
     },
+    findById: async function (user_id) {
+        try {
+            let updateAt = await prisma.users.findUnique({
+                where: {
+                    id: user_id
+                },
+                select: {
+                    update_at: true
+                }
+            });
+            return {
+                status: true,
+                message: "UpDATE THANH CONG",
+                update_at: updateAt?.update_at ?? null
+            }
+
+        } catch (err) {
+            return {
+                status: false,
+                message: "Lỗi không xác định!"
+            }
+        }
+    },
+
 }

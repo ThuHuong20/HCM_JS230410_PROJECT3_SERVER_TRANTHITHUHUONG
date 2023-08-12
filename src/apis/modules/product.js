@@ -19,6 +19,7 @@ import productController from '../../controllers/product.controller';
 router.post("/", productUpload.array('imgs'), productController.create);
 
 router.get("/:id", productController.findById);
+//search
 router.get("/", productController.findMany);
 
 

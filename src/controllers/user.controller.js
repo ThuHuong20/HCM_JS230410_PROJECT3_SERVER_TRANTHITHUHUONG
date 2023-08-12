@@ -25,9 +25,9 @@ async function sendMailLogin(user, ip) {
                 </h1>
             `
         });
-        console.log("mailSent", mailSent)
+
     } catch (err) {
-        console.log("err", err)
+
     }
 }
 
@@ -47,7 +47,7 @@ export default {
 
                     if (!token) {
                         return res.status(200).json({
-                            message: "Đăng ký thành công, nhưng gửi mail thất bại!"
+                            message: "Registration is successful, but sending email failed!"
                         })
                     }
                     let template = await ejs.renderFile(
@@ -58,18 +58,18 @@ export default {
                     if (modelRes.status) {
                         let mailOptions = {
                             to: req.body.email,
-                            subject: "Xác thực email!",
+                            subject: "Email verification!",
                             html: template
                         }
                         let mailSent = await mailService.sendMail(mailOptions);
                         if (mailSent) {
-                            modelRes.message += " Đã gửi email xác thực, vui lòng kiểm tra!"
+                            modelRes.message += " Email verified, please check!"
                         }
                     }
                 }
             } catch (err) {
-                console.log("err", err)
-                modelRes.message += " Lỗi trong quá trình gửi mail xác thực, bạn có thể gửi lại email trong phần profile"
+
+                modelRes.message += "Error in sending verification email, you can resend email in profile"
             }
 
             res.status(modelRes.status ? 200 : 229).json(modelRes)
@@ -85,12 +85,12 @@ export default {
         let decode = jwt.verifyToken(req.params.token)
 
         if (!decode) {
-            return res.send("Email đã hết hiệu lực!")
+            return res.send("Email has expired!")
         }
         try {
             let modelRes = await userModel.confirm(decode)
 
-            res.status(modelRes.status ? 200 : 229).send("da xac nhanj thanh cong")
+            res.status(modelRes.status ? 200 : 229).send("successfully confirmed")
 
         } catch (err) {
             return res.status(500).json(
@@ -126,7 +126,7 @@ export default {
                 // trả về client
                 return res.status(token ? 200 : 213).json(
                     {
-                        message: token ? "Login thành công!" : "Server bảo trì!",
+                        message: token ? "Login sucsses!" : "Server bảo trì!",
                         token
                     }
                 )
@@ -141,8 +141,15 @@ export default {
         }
     },
     authenToken: async (req, res) => {
+        //  let UpDateAt = await userModel.findById(3);
+        // console.log("UpDateAt", UpDateAt);
         let decode = jwt.verifyToken(req.body.token)
-        return res.status(200).json(decode)
+        if (decode) {
+            let modelRes = await userModel.findById(decode.data.id);
+            return res.status(new Date(decode.data.update_at).toDateString() == modelRes.update_at.toDateString() ? 200 : 500).json(decode)
+        }
+        return res.status(500).json(decode);
+        //return res.status(200).json(decode)
     },
     changePassword: async (req, res) => {
         try {
@@ -163,7 +170,7 @@ export default {
 
             let mailOptions = {
                 to: req.body.data.email,
-                subject: "Xác thực thay đổi mật khẩu!",
+                subject: "Verify password change!",
                 html: `
                     <h1>Thời gian đổi: ${(new Date(Date.now())).getDay()}</h1>
                     <a href="${process.env.SV_HOST}:${process.env.SV_PORT}/apis/v1/users/change-password-confirm/${token}">Xác nhận đổi</a>
@@ -191,7 +198,7 @@ export default {
             if (!decode) {
                 return res.status(200).send("Email hết hạn!")
             } else {
-                console.log("decode", decode)
+
                 let result = await userModel.update({
                     user_name: decode.user_name,
                     password: decode.new_pass
@@ -221,7 +228,7 @@ export default {
 
             let mailOptions = {
                 to: req.body.email,
-                subject: "Xác thực email!",
+                subject: "Email verification!",
                 html: template
             }
 

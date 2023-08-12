@@ -1,7 +1,7 @@
 import jwt from "../services/jwt";
 
 export default {
-    checkResendEmail: function(req, res, next) {
+    checkResendEmail: function (req, res, next) {
         if (!req.headers.authorization) {
             return res.status(200).json({
                 message: "Please login!"
@@ -13,17 +13,17 @@ export default {
                 message: "Token invalid!"
             })
         }
-        
+
         if (!tokenCheck.data.email_confirm) {
             req.body = tokenCheck.data;
             next();
-        }else {
+        } else {
             return res.status(200).json({
                 message: "Email đã được xác thực!"
             })
         }
     },
-    checkChangePassword: function(req, res, next) {
+    checkChangePassword: function (req, res, next) {
         if (!req.headers.authorization) {
             return res.status(200).json({
                 message: "Please login!"
@@ -37,5 +37,27 @@ export default {
         }
         req.body.data = tokenCheck.data
         next();
-    }
+    },
+
+    // add to cart check nguoi dawng nhap
+    checkToken: function (req, res, next) {
+        if (!req.headers.authorization) {
+            return res.status(213).json({
+                message: "Please login!"
+            })
+        }
+        let decode = jwt.verifyToken(req.headers.authorization);
+        if (!decode) {
+            return res.status(213).json({
+                message: "Token invalid!"
+            })
+        }
+        if (req.params.user_id != decode.data.id) {
+            return res.status(213).json({
+                message: "Token invalid!"
+            })
+        }
+
+        next();
+    },
 }
