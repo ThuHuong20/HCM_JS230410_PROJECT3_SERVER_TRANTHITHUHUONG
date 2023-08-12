@@ -14,6 +14,8 @@ router.use('/products', productModule);
 import purchaseModule from './modules/purchase.api';
 router.use('/purchase', purchaseModule);
 
+import receiptModule from './modules/receipt.api';
+router.use('/receipts', receiptModule);
 
 
 export default router;

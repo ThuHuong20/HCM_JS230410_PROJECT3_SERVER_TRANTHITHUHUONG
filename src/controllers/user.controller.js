@@ -146,7 +146,7 @@ export default {
         let decode = jwt.verifyToken(req.body.token)
         if (decode) {
             let modelRes = await userModel.findById(decode.data.id);
-            return res.status(new Date(decode.data.update_at).toDateString() == modelRes.update_at.toDateString() ? 200 : 500).json(decode)
+            return res.status(new Date(decode.data.update_at).toDateString() == new Date(modelRes.update_at).toDateString() ? 200 : 500).json(decode)
         }
         return res.status(500).json(decode);
         //return res.status(200).json(decode)
