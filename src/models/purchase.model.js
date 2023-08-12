@@ -149,7 +149,7 @@ export default {
     },
     createReceipt: async function (data) {
         try {
-            let receipt = await prisma.receipts.create({
+            let receipt = prisma.receipts.create({
                 data: {
                     ...data.receiptInfor,
                     receipt_details: {
@@ -157,6 +157,20 @@ export default {
                     },
                 }
             })
+
+            const deleteCartDetail = prisma.cart_details.deleteMany({
+                where: {
+                    cart_id: data.receiptInfor.receipt_code
+                }
+            })
+
+            const deleteCart = prisma.carts.delete({
+                where: {
+                    id: data.receiptInfor.receipt_code,
+                },
+            })
+
+            const transaction = await prisma.$transaction([receipt, deleteCartDetail, deleteCart])
 
             return {
                 status: true,

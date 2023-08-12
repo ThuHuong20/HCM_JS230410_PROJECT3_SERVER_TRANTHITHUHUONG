@@ -3,6 +3,7 @@ import CryptoJS from 'crypto-js'
 import moment from 'moment'
 import axios from 'axios'
 import qs from 'qs'
+
 export default {
     addToCart: async function (req, res) {
         try {
@@ -47,61 +48,73 @@ export default {
         }
     },
     zaloCreate: async function (req, res) {
-        // APP INFO
+        /*
+            req.body = {
+                receiptCode:"abcde",
+                receiptTotal:98764,
+                userName: "abc"
+            }
+        */
         const config = {
-            appid: "554",
-            key1: "8NdU5pG5R2spGHGhyO99HN1OhD8IQJBn",
-            key2: "uUfsWgfLkRLzq6W2uNXTCxrfxs51auny",
-            endpoint: "https://sandbox.zalopay.com.vn/v001/tpe/createorder"
+            appid: process.env.ZALO_APPID,
+            key1: process.env.ZALO_KEY1,
+            key2: process.env.ZALO_KEY2,
+            create: process.env.ZALO_CREATE_URL,
+            confirm: process.env.ZALO_COFIRM_URL,
         };
 
-        const embeddata = {
-            merchantinfo: "embeddata123"
-        };
-
-        const items = [{
-            itemid: "knb",
-            itemname: "kim nguyen bao",
-            itemprice: 198400,
-            itemquantity: 1
-        }];
-
-        const order = {
+        const orderInfo = {
             appid: config.appid,
-            apptransid: `${moment().format('YYMMDD')}_${Date.now()}_${req.body.receipt_code}`, // mã giao dich có định dạng yyMMdd_xxxx
-            appuser: "admin",
+            apptransid: `${moment().format('YYMMDD')}_${Date.now()}_${req.body.receiptCode}`,
+            appuser: req.body.userName,
             apptime: Date.now(),
-            item: JSON.stringify(items),
-            embeddata: JSON.stringify(embeddata),
-            amount: Number(req.body.total),
+            item: JSON.stringify([]),
+            embeddata: JSON.stringify({
+                merchantinfo: "ThuHuongStore" // key require merchantinfo
+            }),
+            amount: Number(req.body.receiptTotal),
             description: "Thanh Toán Cho Shop Hương",
             bankcode: "zalopayapp",
         };
 
-        const data = config.appid + "|" + order.apptransid + "|" + order.appuser + "|" + order.amount + "|" + order.apptime + "|" + order.embeddata + "|" + order.item;
-        order.mac = CryptoJS.HmacSHA256(data, config.key1).toString();
+        const data = config.appid + "|" + orderInfo.apptransid + "|" + orderInfo.appuser + "|" + orderInfo.amount + "|" + orderInfo.apptime + "|" + orderInfo.embeddata + "|" + orderInfo.item;
+        orderInfo.mac = CryptoJS.HmacSHA256(data, config.key1).toString();
 
-        axios.post(config.endpoint, null, { params: order })
-            .then(res => {
-                console.log("apptransid", order.apptransid)
-                console.log(res.data);
+        axios.post(config.create, null, { params: orderInfo })
+            .then(zaloRes => {
+                let qrCodeUrl = {
+                    url: zaloRes.data.orderurl,
+                    orderId: orderInfo.apptransid
+                }
+                return res.status(200).json(qrCodeUrl);
             })
-            .catch(err => console.log(err));
+            .catch(err => {
+                return res.status(500).json({
+                    message: "Zalo sập!"
+                });
+            });
     },
     zaloCheck: async function (req, res) {
+        const config = {
+            appid: process.env.ZALO_APPID,
+            key1: process.env.ZALO_KEY1,
+            key2: process.env.ZALO_KEY2,
+            create: process.env.ZALO_CREATE_URL,
+            confirm: process.env.ZALO_COFIRM_URL,
+        };
+
         let postData = {
-            appid: "554",
-            key1: "8NdU5pG5R2spGHGhyO99HN1OhD8IQJBn",
-            apptransid: "230811_1691754419034_129f517f-0105-4a3e-8102-69bd25994b3f", // Input your apptransid
+            appid: config.appid,
+            apptransid: req.params.tradeId  //"230812_1691831971847_129f517f-0105-4a3e-8102-69bd25994b3f"
         }
 
-        let data = postData.appid + "|" + postData.apptransid + "|" + postData.key1; // appid|apptransid|key1
-        postData.mac = CryptoJS.HmacSHA256(data, postData.key1).toString();
+        let data = config.appid + "|" + postData.apptransid + "|" + config.key1; // appid|apptransid|key1
+        postData.mac = CryptoJS.HmacSHA256(data, config.key1).toString();
 
 
         let postConfig = {
             method: 'post',
-            url: "https://sandbox.zalopay.com.vn/v001/tpe/getstatusbyapptransid",
+            url: config.confirm,
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
@@ -109,12 +122,17 @@ export default {
         };
 
         axios(postConfig)
-            .then(function (response) {
-                console.log("response.data", response.data);
-                res.json(response.data)
+            .then(function (resZalo) {
+                //console.log("response.data", res.data);
+                return res.status(resZalo.data.returncode == 1 ? 200 : 213).json({
+                    message: resZalo.data.returnmessage
+                })
             })
             .catch(function (error) {
-                console.log(error);
+                //console.log("err", error)
+                return res.status(500).json({
+                    message: "Zalo sập!"
+                })
             });
     }
 }
